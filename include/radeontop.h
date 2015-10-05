@@ -34,7 +34,6 @@
 #include <signal.h>
 #include <locale.h>
 #include <xf86drm.h>
-#include <radeon_drm.h>
 #include <amdgpu_drm.h>
 
 enum {
@@ -42,16 +41,9 @@ enum {
 	MMAP_SIZE = 0x14
 };
 
-#ifndef RADEON_INFO_VRAM_USAGE
-#define RADEON_INFO_VRAM_USAGE 0x1e
-#endif
-#ifndef RADEON_INFO_READ_REG
-#define RADEON_INFO_READ_REG 0x24
-#endif
-
 // radeontop.c
 void die(const char *why);
-int get_drm_value(int fd, unsigned request, uint32_t *out);
+int get_drm_value(int fd, uint32_t *out);
 unsigned int readgrbm();
 
 extern const void *area;

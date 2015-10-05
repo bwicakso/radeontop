@@ -45,24 +45,31 @@ static void help(const char * const me, const unsigned int ticks) {
 	die("");
 }
 
-int get_drm_value(int fd, unsigned request, uint32_t *out) {
-    struct drm_radeon_info info;
-    int retval;
+int get_drm_value(int fd, uint32_t *out) {
+    struct drm_amdgpu_info info = {0};
+    info.return_pointer = (uintptr_t)out;
+    info.return_size = 1 * sizeof(uint32_t);
+    info.query = AMDGPU_INFO_READ_MMR_REG;
+    info.read_mmr_reg.dword_offset = 0x2004; // mmGRBM_STATUS
+    info.read_mmr_reg.count = 1;
+    info.read_mmr_reg.instance = 0xffffffff;
+    info.read_mmr_reg.flags = 0;
 
-    memset(&info, 0, sizeof(info));
-
-    info.value = (unsigned long)out;
-    info.request = request;
-
-    retval = drmCommandWriteRead(fd, DRM_RADEON_INFO, &info, sizeof(info));
-    return !retval;
+    int ret =  drmCommandWrite(fd, DRM_AMDGPU_INFO, &info,
+               sizeof(struct drm_amdgpu_info));
+      
+    if (ret) {
+			printf(_("Failed to get DRM_AMDGPU_INFO, error %d\n"), ret);
+		}
+        
+    return ret;
 }
 
 unsigned int readgrbm() {
 
 	if (use_ioctl) {
-		uint32_t reg = 0x8010;
-		get_drm_value(drm_fd, RADEON_INFO_READ_REG, &reg);
+		uint32_t reg = 0;
+		get_drm_value(drm_fd, &reg);
 		return reg;
 	} else {
 		const void *ptr = (const char *) area + 0x10;

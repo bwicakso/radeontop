@@ -134,8 +134,25 @@ unsigned int init_pci(unsigned char bus) {
 
 	use_ioctl = 0;
 	if (drm_fd >= 0) {
-		uint32_t rreg = 0x8010;
-		use_ioctl = get_drm_value(drm_fd, RADEON_INFO_READ_REG, &rreg);
+		struct drm_amdgpu_info request = {0};
+    
+    uint32_t out = 0;
+    request.return_pointer = (uintptr_t)&out;
+    request.return_size = 1 * sizeof(uint32_t);
+    request.query = AMDGPU_INFO_READ_MMR_REG;
+    request.read_mmr_reg.dword_offset = 0x2004;
+    request.read_mmr_reg.count = 1;
+    request.read_mmr_reg.instance = 0xffffffff;
+    request.read_mmr_reg.flags = 0;
+
+    ret =  drmCommandWrite(drm_fd, DRM_AMDGPU_INFO, &request,
+               sizeof(struct drm_amdgpu_info));
+    if (ret) {
+			printf(_("Failed to get DRM_AMDGPU_INFO, error %d\n"), ret);
+       use_ioctl = 0;
+		} else {
+      use_ioctl = 1;
+    }
 	}
 
 	if (!use_ioctl) {
@@ -152,26 +169,15 @@ unsigned int init_pci(unsigned char bus) {
 		printf(_("Failed to open DRM node, no VRAM support.\n"));
 	} else {
 		drmDropMaster(drm_fd);
-		const drmVersion * const ver = drmGetVersion(drm_fd);
 
-/*		printf("Version %u.%u.%u, name %s\n",
-			ver->version_major,
-			ver->version_minor,
-			ver->version_patchlevel,
-			ver->name);*/
-
-		if (ver->version_major != 2 ||
-			ver->version_minor < 36) {
-			printf(_("Kernel too old for VRAM reporting.\n"));
-			goto out;
-		}
-
-		// No version indicator, so we need to test once
-
-		struct drm_radeon_gem_info gem;
-
-		ret = drmCommandWriteRead(drm_fd, DRM_RADEON_GEM_INFO,
-						&gem, sizeof(gem));
+    struct drm_amdgpu_info info = {0};
+		struct drm_amdgpu_info_vram_gtt gem = {0};
+    info.query = AMDGPU_INFO_VRAM_GTT;
+    info.return_pointer = (uint64_t)&gem;
+    info.return_size = sizeof(gem);
+    
+		ret = drmCommandWriteRead(drm_fd, DRM_AMDGPU_INFO,
+						&info, sizeof(info));
 		if (ret) {
 			printf(_("Failed to get VRAM size, error %d\n"),
 				ret);
@@ -196,18 +202,15 @@ unsigned int init_pci(unsigned char bus) {
 }
 
 unsigned long long getvram() {
+  unsigned long long val = 0;
+  struct drm_amdgpu_info info = {0};
+  info.query = AMDGPU_INFO_VRAM_USAGE;
+  info.return_pointer = (uint64_t)&val;
+  info.return_size = sizeof(val);
 
-	int ret;
-	unsigned long long val = 0;
-
-	struct drm_radeon_info info;
-	memset(&info, 0, sizeof(info));
-	info.value = (unsigned long) &val;
-	info.request = RADEON_INFO_VRAM_USAGE;
-
-	ret = drmCommandWriteRead(drm_fd, DRM_RADEON_INFO, &info, sizeof(info));
-	if (ret) return 0;
-
+  int ret = drmCommandWriteRead(drm_fd, DRM_AMDGPU_INFO,
+          &info, sizeof(info));
+  if (ret) return 0;
 	return val;
 }
 
