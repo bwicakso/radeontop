@@ -20,6 +20,7 @@
 
 struct bits_t bits;
 unsigned long long vramsize;
+unsigned long long gttsize;
 int drm_fd = -1;
 
 static int drmfilter(const struct dirent *ent) {
@@ -184,6 +185,10 @@ unsigned int init_pci(unsigned char bus) {
 			goto out;
 		}
 		vramsize = gem.vram_size;
+    gttsize = gem.gtt_size;
+    
+    printf("VRAM size: %llu\n", vramsize);
+    printf("GTT size: %llu\n", gttsize);
 
 		ret = getvram();
 		if (ret == 0) {
@@ -192,6 +197,7 @@ unsigned int init_pci(unsigned char bus) {
 		}
 
 		bits.vram = 1;
+    bits.gtt = 1;
 	}
 
 	out:
@@ -209,9 +215,22 @@ unsigned long long getvram() {
   info.return_size = sizeof(val);
 
   int ret = drmCommandWriteRead(drm_fd, DRM_AMDGPU_INFO,
-          &info, sizeof(info));
+                                &info, sizeof(info));
   if (ret) return 0;
 	return val;
+}
+
+unsigned long long getgtt() {
+  unsigned long long val = 0;
+  struct drm_amdgpu_info info = {0};
+  info.query = AMDGPU_INFO_GTT_USAGE;
+  info.return_pointer = (uint64_t)&val;
+  info.return_size = sizeof(val);
+
+  int ret = drmCommandWriteRead(drm_fd, DRM_AMDGPU_INFO,
+                                &info, sizeof(info));
+  if (ret) return 0;
+  return val;
 }
 
 int getfamily(unsigned int id) {

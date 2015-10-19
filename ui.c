@@ -26,8 +26,8 @@ static void printcenter(const unsigned int y, const unsigned int width,
 	va_start(ap, fmt);
 
 #ifdef ENABLE_NLS
-	vasprintf(&ptr, fmt, ap);
-	const unsigned int len = mbstowcs(NULL, ptr, 0);
+	unsigned int len = vasprintf(&ptr, fmt, ap);
+	len = mbstowcs(NULL, ptr, 0);
 #else
 	const unsigned int len = vasprintf(&ptr, fmt, ap);
 #endif
@@ -49,8 +49,8 @@ static void printright(const unsigned int y, const unsigned int width,
 	va_start(ap, fmt);
 
 #ifdef ENABLE_NLS
-	vasprintf(&ptr, fmt, ap);
-	const unsigned int len = mbstowcs(NULL, ptr, 0);
+	unsigned int len = vasprintf(&ptr, fmt, ap);
+	len = mbstowcs(NULL, ptr, 0);
 #else
 	const unsigned int len = vasprintf(&ptr, fmt, ap);
 #endif
@@ -134,6 +134,9 @@ void present(const unsigned int ticks, const char card[], unsigned int color) {
 		float vram = 100.0 * (float) results->vram / vramsize;
 		float vrammb = results->vram / 1024.0f / 1024.0f;
 		float vramsizemb = vramsize / 1024.0f / 1024.0f;
+    float gtt = 100.0 * (float) results->gtt / gttsize;
+    float gttmb = results->gtt / 1024.0f / 1024.0f;
+    float gttsizemb = gttsize / 1024.0f / 1024.0f;
 
 		mvhline(3, 0, ACS_HLINE, w);
 		mvvline(1, (w/2) + 1, ACS_VLINE, h);
@@ -225,6 +228,16 @@ void present(const unsigned int ticks, const char card[], unsigned int color) {
 			percentage(start, w, vram);
 			printright(start++, hw, _("%.0fM / %.0fM VRAM %6.2f%%"),
 					vrammb, vramsizemb, vram);
+			if (color) attroff(COLOR_PAIR(2));
+		}
+
+    if (h > bigh) start++;
+
+    if (bits.gtt) {
+			if (color) attron(COLOR_PAIR(2));
+			percentage(start, w, gtt);
+			printright(start++, hw, _("%.0fM / %.0fM GTT %6.2f%%"),
+					gttmb, gttsizemb, gtt);
 			if (color) attroff(COLOR_PAIR(2));
 		}
 

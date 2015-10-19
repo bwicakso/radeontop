@@ -54,6 +54,7 @@ unsigned int init_pci(unsigned char bus);
 int getfamily(unsigned int id);
 void initbits(int fam);
 unsigned long long getvram();
+unsigned long long getgtt();
 
 // ticks.c
 void collect(unsigned int *ticks);
@@ -128,10 +129,12 @@ struct bits_t {
 	unsigned int cb;
 	unsigned int cr;
 	unsigned long long vram;
+  unsigned long long gtt;
 };
 
 extern struct bits_t bits;
 extern unsigned long long vramsize;
+extern unsigned long long gttsize;
 extern int drm_fd;
 
 #endif
